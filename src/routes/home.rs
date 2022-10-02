@@ -37,7 +37,7 @@ pub fn home() -> Html {
         Callback::from(move |e: Event| {
             let input: HtmlInputElement = e.target_unchecked_into();
             message.set(input.value());
-            graph.set(Props{code : input.value()});
+            // graph.set(Props{code : input.value()});
             log::info!("Update: {:?}", "ok");
             log::info!("Update: {:?}", sql_mermaid((*message).clone().as_str()));
         })
@@ -63,15 +63,15 @@ pub fn home() -> Html {
         .to_string()
     });
 
-    let props = mermaid::Props {
-        code: "
-    graph LR
-    A --- B
-    B-->C[fa:fa-ban forbidden]
-    B-->D(fa:fa-spinner);
-"
-        .to_string(),
-    };
+//     let props = mermaid::Props {
+//         code: "
+//     graph LR
+//     A --- B
+//     B-->C[fa:fa-ban forbidden]
+//     B-->D(fa:fa-spinner);
+// "
+//         .to_string(),
+//     };
 
     html! {
         <div class="app">
@@ -111,7 +111,7 @@ pub fn home() -> Html {
                 <p> { (*message).clone()} </p>
                 <p> { sql_mermaid((*message).clone().as_str()) } </p>
             </header>
-            <Mermaid code={props.code} />
+            <Mermaid code={ sql_mermaid((*message).clone().as_str()) } />
         </div>
     }
 }
