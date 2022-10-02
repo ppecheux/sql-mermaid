@@ -6,6 +6,19 @@
     <link rel="shortcut icon" href="./favicon.ico">
     <link rel="stylesheet" href="./styles.scss">
     <title>Yew App</title>
+    <script type="module">
+        import init, {run_fg} from "./wasm.js"
+
+        const runWasm = async () => {
+            const rustWasm = await init();
+        };
+
+        runWasm();
+        </script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+      </script>
   </head>
   <body>
     <script src="./index.ts"></script>

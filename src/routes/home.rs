@@ -1,13 +1,10 @@
 use web_sys::HtmlInputElement;
 
+use crate::algos::{convertor::sql_mermaid, mermaid::Props};
+use crate::algos::mermaid;
+use crate::algos::mermaid::Mermaid;
+use yew::{events::Event, function_component, html, use_mut_ref, use_state, Callback, TargetCast};
 use yew_hooks::prelude::*;
-use yew::{
-    events::Event,
-    function_component, html, use_mut_ref, use_state,
-    Callback, TargetCast,
-};
-
-
 /// Home page
 ///
 #[function_component(Home)]
@@ -15,6 +12,16 @@ pub fn home() -> Html {
     let counter = use_counter(0);
     let message = use_state(|| "".to_string());
     let message_count = use_mut_ref(|| 0);
+
+    let graph = use_state(|| mermaid::Props {
+        code: "
+    graph LR
+    A --- B
+    B-->C[fa:fa-ban forbidden]
+    B-->D(fa:fa-spinner);
+"
+        .to_string(),
+    });
 
     let onincrease = {
         let counter = counter.clone();
@@ -30,9 +37,11 @@ pub fn home() -> Html {
         Callback::from(move |e: Event| {
             let input: HtmlInputElement = e.target_unchecked_into();
             message.set(input.value());
+            graph.set(Props{code : input.value()});
+            log::info!("Update: {:?}", "ok");
+            log::info!("Update: {:?}", sql_mermaid((*message).clone().as_str()));
         })
     };
-    
     let onclick = Callback::from(move |_| {
         let window = gloo_utils::window();
 
@@ -44,7 +53,25 @@ pub fn home() -> Html {
         }
     });
 
-    let input_text = use_state(|| "my text".to_string());
+    let input_text = use_state(|| {
+        "
+    graph LR
+    A --- B
+    B-->C[fa:fa-ban forbidden]
+    B-->D(fa:fa-spinner);
+"
+        .to_string()
+    });
+
+    let props = mermaid::Props {
+        code: "
+    graph LR
+    A --- B
+    B-->C[fa:fa-ban forbidden]
+    B-->D(fa:fa-spinner);
+"
+        .to_string(),
+    };
 
     html! {
         <div class="app">
@@ -78,11 +105,13 @@ pub fn home() -> Html {
 
                 <p> { (*input_text).clone()  } </p>
                 <div>
-                    <input {onchange} value={(*message).clone()} />
+                    <textarea {onchange} value={(*message).clone()} />
                     <button {onclick}>{ "Send" }</button>
                 </div>
                 <p> { (*message).clone()} </p>
+                <p> { sql_mermaid((*message).clone().as_str()) } </p>
             </header>
+            <Mermaid code={props.code} />
         </div>
     }
 }
