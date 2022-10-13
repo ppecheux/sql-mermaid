@@ -3,35 +3,22 @@ use web_sys::HtmlInputElement;
 use crate::algos::mermaid;
 use crate::algos::mermaid::Mermaid;
 use crate::algos::{convertor::sql_mermaid, mermaid::Props};
-use material_yew::{MatButton, MatTextArea};
+use material_yew::{MatButton, MatTab, MatTabBar, MatTextArea};
 use yew::{events::Event, function_component, html, use_mut_ref, use_state, Callback, TargetCast};
 use yew_hooks::prelude::*;
 /// Home page
 ///
+/// 
+#[derive(Clone, Copy)]
+enum Tabs {
+    Schema,
+    Code,
+}
+
 #[function_component(Home)]
 pub fn home() -> Html {
-    let counter = use_counter(0);
     let message = use_state(|| "".to_string());
-    let message_count = use_mut_ref(|| 0);
-
-    let graph = use_state(|| mermaid::Props {
-        code: "
-    graph LR
-    A --- B
-    B-->C[fa:fa-ban forbidden]
-    B-->D(fa:fa-spinner);
-"
-        .to_string(),
-    });
-
-    let onincrease = {
-        let counter = counter.clone();
-        Callback::from(move |_| counter.increase())
-    };
-    let ondecrease = {
-        let counter = counter.clone();
-        Callback::from(move |_| counter.decrease())
-    };
+    let tab = use_state(|| Tabs::Schema);
 
     let onchange = {
         let message = message.clone();
@@ -43,83 +30,37 @@ pub fn home() -> Html {
             log::info!("Update: {:?}", sql_mermaid((*message).clone().as_str()));
         })
     };
-    let onclick = Callback::from(move |_| {
-        let window = gloo_utils::window();
 
-        if *message_count.borrow_mut() > 3 {
-            window.alert_with_message("Message limit reached").unwrap();
-        } else {
-            *message_count.borrow_mut() += 1;
-            window.alert_with_message("Message sent").unwrap();
-        }
-    });
+    let on_activated = {
+        let tab = tab.clone();
+        Callback::from(move |index| match index {
+            0 => tab.set(Tabs::Schema),
+            1 => tab.set(Tabs::Code),
+            num => unreachable!("{}", num),
+        })
+    };
 
-    let input_text = use_state(|| {
-        "
-    graph LR
-    A --- B
-    B-->C[fa:fa-ban forbidden]
-    B-->D(fa:fa-spinner);
-"
-        .to_string()
-    });
-
-    //     let props = mermaid::Props {
-    //         code: "
-    //     graph LR
-    //     A --- B
-    //     B-->C[fa:fa-ban forbidden]
-    //     B-->D(fa:fa-spinner);
-    // "
-    //         .to_string(),
-    //     };
+    let schema_or_code = match *tab {
+        Tabs::Schema => html! { <Mermaid code={ sql_mermaid((*message).clone().as_str()) } /> },
+        Tabs::Code => html! { <p> { sql_mermaid((*message).clone().as_str()) } </p> },
+    };
 
     html! {
         <div class="app">
-            <header class="app-header">
-                <a
-                    class="app-logo"
-                    href="https://yew.rs"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                </a>
-                <p>
-                    { "Edit " } <code>{ "src/routes/home.rs" }</code> { " and save to reload." }
-                </p>
-                <a
-                    id="learn_yew"
-                    class="app-link"
-                    href="https://yew.rs"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    { "Learn Yew" }
-                </a>
-                <p>
-                    <button onclick={ondecrease}>{ "Decrease" }</button>
-                    { *counter }
-                    <button onclick={onincrease}>{ "Increase" }</button>
-                </p>
-
-                // <input {onchange} value={(*message).clone()} />
-
-                <p> { (*input_text).clone()  } </p>
+            
                 <div>
-                    // <textarea {onchange} value={(*message).clone()} />
-                    // <button {onclick}>{ "Send" }</button>
                     <div {onchange} >
                     <MatTextArea value={(*message).clone()} />
                     </div>
-                    <div {onclick} >
+                    <div >
                     <MatButton label="send" />
                     </div>
                 </div>
-                <p> { (*message).clone()} </p>
-                <p> { sql_mermaid((*message).clone().as_str()) } </p>
-            </header>
-            <Mermaid code={ sql_mermaid((*message).clone().as_str()) } />
-            <MatButton label="Click me!" />
+            <MatTabBar onactivated={on_activated}>
+                <MatTab icon="schema" />
+                <MatTab icon="code" />
+            </MatTabBar>
+            {schema_or_code}
         </div>
     }
 }
