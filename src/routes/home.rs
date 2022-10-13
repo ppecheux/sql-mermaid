@@ -1,8 +1,9 @@
 use web_sys::HtmlInputElement;
 
-use crate::algos::{convertor::sql_mermaid, mermaid::Props};
 use crate::algos::mermaid;
 use crate::algos::mermaid::Mermaid;
+use crate::algos::{convertor::sql_mermaid, mermaid::Props};
+use material_yew::{MatButton, MatTextArea};
 use yew::{events::Event, function_component, html, use_mut_ref, use_state, Callback, TargetCast};
 use yew_hooks::prelude::*;
 /// Home page
@@ -63,15 +64,15 @@ pub fn home() -> Html {
         .to_string()
     });
 
-//     let props = mermaid::Props {
-//         code: "
-//     graph LR
-//     A --- B
-//     B-->C[fa:fa-ban forbidden]
-//     B-->D(fa:fa-spinner);
-// "
-//         .to_string(),
-//     };
+    //     let props = mermaid::Props {
+    //         code: "
+    //     graph LR
+    //     A --- B
+    //     B-->C[fa:fa-ban forbidden]
+    //     B-->D(fa:fa-spinner);
+    // "
+    //         .to_string(),
+    //     };
 
     html! {
         <div class="app">
@@ -105,13 +106,20 @@ pub fn home() -> Html {
 
                 <p> { (*input_text).clone()  } </p>
                 <div>
-                    <textarea {onchange} value={(*message).clone()} />
-                    <button {onclick}>{ "Send" }</button>
+                    // <textarea {onchange} value={(*message).clone()} />
+                    // <button {onclick}>{ "Send" }</button>
+                    <div {onchange} >
+                    <MatTextArea value={(*message).clone()} />
+                    </div>
+                    <div {onclick} >
+                    <MatButton label="send" />
+                    </div>
                 </div>
                 <p> { (*message).clone()} </p>
                 <p> { sql_mermaid((*message).clone().as_str()) } </p>
             </header>
             <Mermaid code={ sql_mermaid((*message).clone().as_str()) } />
+            <MatButton label="Click me!" />
         </div>
     }
 }

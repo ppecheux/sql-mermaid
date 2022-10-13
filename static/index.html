@@ -1,26 +1,31 @@
 <!doctype html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="shortcut icon" href="./favicon.ico">
     <link rel="stylesheet" href="./styles.scss">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Material+Icons&display=block" rel="stylesheet">
     <title>Yew App</title>
     <script type="module">
-        import init, {run_fg} from "./wasm.js"
+        import init, { run_fg } from "./wasm.js"
 
         const runWasm = async () => {
             const rustWasm = await init();
         };
 
         runWasm();
-        </script>
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
-      </script>
-  </head>
-  <body>
+    </script>
+</head>
+
+<body>
     <script src="./index.ts"></script>
-  </body>
+</body>
+
 </html>
