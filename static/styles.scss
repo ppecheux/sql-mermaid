@@ -1,66 +1,114 @@
+// body {
+//     padding: 10px;
+//     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+//       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+//       sans-serif;
+//     -webkit-font-smoothing: antialiased;
+//     -moz-osx-font-smoothing: grayscale;
+//   }
+
+* {
+    padding: 0;
+    margin: 0;
+}
+
+.grow-area * {
+    flex-grow: 1;
+}
+
+
 body {
-    padding: 10px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-  
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+    font-size: 16px;
+    font-family: Roboto, serif;
+    overflow: hidden;
+    flex-grow: 1;
 }
 
-nav ul {
-  padding: 0;
-  margin: 0;
-}
-
-nav li {
-  display: block;
-  float: right;
-  padding: 10px;
+.app-container {
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: calc(100vh - 64px);
 }
 
 .app {
-  text-align: center;
+    max-height: 100%;
+    margin: 0 auto;
+    text-align: center;
+    flex-grow: 1;
 }
 
-.app-logo {
-  display: block;
-  pointer-events: none;
-  width: 200px;
-  height: 200px;
-  background: url(./logo.svg);
-  background-size: 200px 200px;
+
+mwc-top-app-bar-fixed {
+    box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.2), 0 5px 8px 0 rgba(0, 0, 0, 0.14),
+        0 1px 14px 0 rgba(0, 0, 0, 0.12);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .app-logo {
-    animation: app-logo-spin infinite 20s linear;
-  }
+.app-title {
+    display: flex;
+    align-items: center;
+
+    h1 {
+        font-size: 1em;
+        font-weight: unset;
+    }
+
+    a {
+        text-decoration: none;
+        color: white;
+    }
 }
 
-.app-header {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.action-item {
+    --mdc-theme-primary: white;
+    margin-left: 0.5em;
+
+    mwc-icon-button {
+        color: rgba(0, 0, 0, 0.85);
+    }
 }
 
-.app-link {
-  color: #61dafb;
+.tab-component {
+    padding: 1em 0;
+
+    h2 {
+        padding: 1em 0;
+    }
 }
 
-@keyframes app-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.home-content {
+    padding: 0 0.6em 2em;
+    line-height: 1.5em;
+
+    pre {
+        margin: 1em 0;
+    }
+
+    ul {
+        padding-left: 1em;
+    }
 }
+
+code {
+    font-family: "Source Code Pro", monospace;
+}
+
+.mdc-text-field {
+    flex-grow: 1;
+}
+
+mwc-textarea * {
+    flex-grow: 1;
+}
+
+:host(mwc-notched-outline * ) {
+    flex-grow: 1;
+} 
+// .app-header {
+//   min-height: 100vh;
+//   display: flex;
+//   flex-direction: column;
+//   align-items: center;
+//   justify-content: center;
+//   font-size: calc(10px + 2vmin);
+//   color: white;
+// }

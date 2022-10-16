@@ -1,33 +1,63 @@
 use web_sys::HtmlInputElement;
+use yew::virtual_dom::VNode;
+use yew::Html;
 
-use crate::algos::mermaid;
+use crate::algos::convertor::{sql_mermaid};
 use crate::algos::mermaid::Mermaid;
-use crate::algos::{convertor::sql_mermaid, mermaid::Props};
 use material_yew::{MatButton, MatTab, MatTabBar, MatTextArea};
-use yew::{events::Event, function_component, html, use_mut_ref, use_state, Callback, TargetCast};
-use yew_hooks::prelude::*;
+use yew::{events::Event, function_component, html, use_state, Callback, TargetCast};
+
 /// Home page
 ///
-/// 
+///
 #[derive(Clone, Copy)]
 enum Tabs {
     Schema,
     Code,
 }
 
+const INIT_SQL: &'static str = r#"CREATE TABLE "Student" (
+    "StudentId" INT NOT NULL,
+    "ParentId" INT NOT NULL,
+    "Name" VARCHAR(30) NOT NULL,
+    "Age" INT NOT NULL,
+    "Address" VARCHAR(25) NOT NULL,
+    "Phone" VARCHAR(20) NOT NULL,
+    CONSTRAINT "PK_Student" PRIMARY KEY ("StudentId")
+  );
+  
+  CREATE TABLE "Parent" (
+    "ParentId" INT NOT NULL,
+    "StudentId" INT NOT NULL,
+    "PartnerId" INT NOT NULL,
+    "Name" VARCHAR(30) NOT NULL,
+    "Address" VARCHAR(25) NOT NULL,
+    "Phone" VARCHAR(20) NOT NULL,
+    CONSTRAINT "PK_Parent" PRIMARY KEY ("ParentId")
+  );
+  
+  ALTER TABLE "Student" ADD CONSTRAINT "FK_StudentParentId"
+    FOREIGN KEY ("ParentId") REFERENCES "Parent" ("ParentId");
+  
+  ALTER TABLE "Parent" ADD CONSTRAINT "FK_ParentStudentId"
+    FOREIGN KEY ("StudentId") REFERENCES "Student" ("StudentId");
+  
+  ALTER TABLE "Parent" ADD CONSTRAINT "FK_ParentPartnerId"
+    FOREIGN KEY ("PartnerId") REFERENCES "Parent" ("ParentId");
+  "#;
+
 #[function_component(Home)]
 pub fn home() -> Html {
-    let message = use_state(|| "".to_string());
+    let sql = use_state(|| INIT_SQL.to_string());
     let tab = use_state(|| Tabs::Schema);
 
     let onchange = {
-        let message = message.clone();
+        let sql = sql.clone();
         Callback::from(move |e: Event| {
             let input: HtmlInputElement = e.target_unchecked_into();
-            message.set(input.value());
-            // graph.set(Props{code : input.value()});
-            log::info!("Update: {:?}", "ok");
-            log::info!("Update: {:?}", sql_mermaid((*message).clone().as_str()));
+            sql.set(input.value());
+            // log::info!("Update: {:?}", "ok");
+            // log::info!("Update: {:?}", sql_mermaid((*sql).clone().as_str()));
         })
     };
 
@@ -40,17 +70,32 @@ pub fn home() -> Html {
         })
     };
 
-    let schema_or_code = match *tab {
-        Tabs::Schema => html! { <Mermaid code={ sql_mermaid((*message).clone().as_str()) } /> },
-        Tabs::Code => html! { <p> { sql_mermaid((*message).clone().as_str()) } </p> },
+    let schema_or_code = {
+        let mermaid = sql_mermaid((*sql).clone().as_str());
+        match *tab {
+            Tabs::Schema => html! { <Mermaid code={ mermaid } /> },
+            Tabs::Code => html! {
+                <div >
+                   <p style="margin-left: auto; margin-right: auto; text-align:left; max-width: 300px; align:center"> { mermaid.lines().map(
+                        |row| html! { <> {row} <br/> </>}
+                    ).collect::<Html>()}
+                    </p>
+               </div>
+            },
+        }
     };
 
     html! {
         <div class="app">
-            
                 <div>
-                    <div {onchange} >
-                    <MatTextArea value={(*message).clone()} />
+                    <div class="flex-container grow-area" id="grow-area" style="display: flex; flex-direction: column; min-height:300px">
+                        // <div  class="flex-container"  style=" min-height: 500px; min-width:100%">
+                        // <div  tyle="display: flex; flex-direction: row; ">
+                    //style="min-height:550px;"
+                            // <MatTextArea value={(*sql).clone()} outlined=true helper="create table sql"/>
+                            <textarea {onchange} value={(*sql).clone()} style="flex-grow : 1" />
+                        // </div>
+                        // </div>
                     </div>
                     <div >
                     <MatButton label="send" />
