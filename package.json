@@ -1,6 +1,6 @@
 {
   "author": "You <you@example.com>",
-  "name": "yew-app",
+  "name": "sqler",
   "version": "0.1.0",
   "scripts": {
     "build": "cross-env WASM_PACK_PROFILE=release parcel build static/index.html --public-url ./",
