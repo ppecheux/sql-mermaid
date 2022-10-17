@@ -28,3 +28,9 @@ npm run build
 # Runs tests
 npm test
 ```
+
+### Deploy
+
+```sh
+git push origin v*.*.*
+```
