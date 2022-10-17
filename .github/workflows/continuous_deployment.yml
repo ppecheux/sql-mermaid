@@ -18,8 +18,8 @@ jobs:
     - name: Package
       shell: bash
       run: |
-        tar czvf target/sqler.tar.gz /dist
-        zip -r target/sqler.zip /dist
+        tar czvf target/sqler.tar.gz dist
+        zip -r target/sqler.zip dist
         shasum -a 256 target/sqler.tar.gz > target/sqler.tar.gz.sha256
         shasum -a 256 target/sqler.zip > target/sqler.zip.sha256
     - name: Release
