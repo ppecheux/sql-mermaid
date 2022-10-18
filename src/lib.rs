@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate dotenv_codegen;
+
 pub mod app;
 pub mod components;
 pub mod routes;

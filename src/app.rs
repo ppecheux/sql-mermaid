@@ -8,9 +8,11 @@ use crate::routes::{switch, AppRoute};
 #[function_component(App)]
 pub fn app() -> Html {
     html! {
-        <BrowserRouter>
-            <Nav />
-            <Switch<AppRoute> render={Switch::render(switch)} />
-        </BrowserRouter>
-    }
+            // wait for yew 0.20
+            // <BrowserRouter basename={dotenv!("BASENAME")}>
+            <BrowserRouter>
+                <Nav />
+                <Switch<AppRoute> render={Switch::render(switch)} />
+            </BrowserRouter>
+        }
 }

@@ -16,6 +16,7 @@ jobs:
         version: 'latest'
     - name: Build
       run: |
+        cp .gh-pages.env .env
         npm install
         npm run build
     - name: Package
@@ -38,6 +39,6 @@ jobs:
     - name: Deploy demo
       uses: JamesIves/github-pages-deploy-action@v4.2.2
       with:
-        branch: main
+        branch: gh-pages
         folder: dist
         clean: true
