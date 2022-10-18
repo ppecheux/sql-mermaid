@@ -19,7 +19,7 @@ pub enum AppRoute {
     #[at("/")]
     Home,
     // remove when yew 0.20
-    #[at("/sql-mermaid")]
+    #[at("/sql-mermaid/")]
     AlsoHome,
 }
 
