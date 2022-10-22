@@ -1,11 +1,10 @@
 use web_sys::HtmlInputElement;
-use yew::virtual_dom::VNode;
-use yew::Html;
+use yew::{Html, use_state};
 
-use crate::algos::convertor::{sql_mermaid};
+use crate::algos::convertor::{sql_s_mermaid};
 use crate::algos::mermaid::Mermaid;
-use material_yew::{MatButton, MatTab, MatTabBar, MatTextArea};
-use yew::{events::Event, function_component, html, use_state, Callback, TargetCast};
+use material_yew::{MatButton, MatTab, MatTabBar};
+use yew::{events::Event, function_component, html, Callback, TargetCast};
 
 /// Home page
 ///
@@ -16,35 +15,22 @@ enum Tabs {
     Code,
 }
 
-const INIT_SQL: &'static str = r#"CREATE TABLE "Student" (
-    "StudentId" INT NOT NULL,
-    "ParentId" INT NOT NULL,
-    "Name" VARCHAR(30) NOT NULL,
-    "Age" INT NOT NULL,
-    "Address" VARCHAR(25) NOT NULL,
-    "Phone" VARCHAR(20) NOT NULL,
-    CONSTRAINT "PK_Student" PRIMARY KEY ("StudentId")
-  );
-  
-  CREATE TABLE "Parent" (
-    "ParentId" INT NOT NULL,
-    "StudentId" INT NOT NULL,
-    "PartnerId" INT NOT NULL,
-    "Name" VARCHAR(30) NOT NULL,
-    "Address" VARCHAR(25) NOT NULL,
-    "Phone" VARCHAR(20) NOT NULL,
-    CONSTRAINT "PK_Parent" PRIMARY KEY ("ParentId")
-  );
-  
-  ALTER TABLE "Student" ADD CONSTRAINT "FK_StudentParentId"
-    FOREIGN KEY ("ParentId") REFERENCES "Parent" ("ParentId");
-  
-  ALTER TABLE "Parent" ADD CONSTRAINT "FK_ParentStudentId"
-    FOREIGN KEY ("StudentId") REFERENCES "Student" ("StudentId");
-  
-  ALTER TABLE "Parent" ADD CONSTRAINT "FK_ParentPartnerId"
-    FOREIGN KEY ("PartnerId") REFERENCES "Parent" ("ParentId");
-  "#;
+const INIT_SQL: &'static str = r#"CREATE TABLE CUSTOMERS(
+    ID   INT              NOT NULL,
+    NAME VARCHAR (20)     NOT NULL,
+    AGE  INT              NOT NULL,
+    ADDRESS  CHAR (25) ,
+    SALARY   DECIMAL (18, 2),       
+    PRIMARY KEY (ID)
+ );
+ CREATE TABLE ORDERS (
+    ID          INT        NOT NULL,
+    DATE        DATETIME, 
+    CUSTOMER_ID INT references CUSTOMERS(ID),
+    AMOUNT     double,
+    PRIMARY KEY (ID)
+ );
+ "#;
 
 #[function_component(Home)]
 pub fn home() -> Html {
@@ -71,7 +57,7 @@ pub fn home() -> Html {
     };
 
     let schema_or_code = {
-        let mermaid = sql_mermaid((*sql).clone().as_str());
+        let mermaid = sql_s_mermaid((*sql).clone().as_str());
         match *tab {
             Tabs::Schema => html! { <Mermaid code={ mermaid } /> },
             Tabs::Code => html! {
@@ -86,16 +72,11 @@ pub fn home() -> Html {
     };
 
     html! {
+        <body>
         <div class="app">
                 <div>
                     <div class="flex-container grow-area" id="grow-area" style="display: flex; flex-direction: column; min-height:300px">
-                        // <div  class="flex-container"  style=" min-height: 500px; min-width:100%">
-                        // <div  tyle="display: flex; flex-direction: row; ">
-                    //style="min-height:550px;"
-                            // <MatTextArea value={(*sql).clone()} outlined=true helper="create table sql"/>
                             <textarea {onchange} value={(*sql).clone()} style="flex-grow : 1" />
-                        // </div>
-                        // </div>
                     </div>
                     <div >
                     <MatButton label="send" />
@@ -107,5 +88,6 @@ pub fn home() -> Html {
             </MatTabBar>
             {schema_or_code}
         </div>
+        </body>
     }
 }

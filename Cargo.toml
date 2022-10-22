@@ -28,6 +28,7 @@ gloo-utils = "0.1.5"
 clap = { version = "3.0.14", features = ["derive"] }
 material-yew = { version = "0.2.0" , features = ["button", "textarea", "top-app-bar", "tabs", "top-app-bar-fixed"] }
 dotenv_codegen = "0.15.0"
+sqlparser = "0.8.0"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.14"
