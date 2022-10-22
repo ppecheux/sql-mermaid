@@ -19,9 +19,11 @@ const INIT_SQL: &'static str = r#"CREATE TABLE CUSTOMERS(
     ID   INT              NOT NULL,
     NAME VARCHAR (20)     NOT NULL,
     AGE  INT              NOT NULL,
-    ADDRESS  CHAR (25) ,
-    SALARY   DECIMAL (18, 2),       
-    PRIMARY KEY (ID)
+    ADDRESS INT           NOT NULL,
+    SALARY   DECIMAL (18, 2),  
+    PRIMARY KEY (ID),
+    CONSTRAINT FK_Address FOREIGN KEY (ADDRESS)
+    REFERENCES ADDRESS(ID)
  );
  CREATE TABLE ORDERS (
     ID          INT        NOT NULL,
@@ -30,6 +32,13 @@ const INIT_SQL: &'static str = r#"CREATE TABLE CUSTOMERS(
     AMOUNT     double,
     PRIMARY KEY (ID)
  );
+
+ CREATE TABLE ADDRESS (
+    ID        INT NOT NULL,
+    COUNTRY   VARCHAR (20),
+    CITY VARCHAR (20),
+    PRIMARY KEY (ID)
+ )
  "#;
 
 #[function_component(Home)]

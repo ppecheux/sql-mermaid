@@ -1,4 +1,4 @@
-use sqlparser::ast::{ColumnOption, ColumnOptionDef, Statement};
+use sqlparser::ast::{ColumnOption, ColumnOptionDef, Ident, Statement};
 use sqlparser::dialect::GenericDialect;
 use sqlparser::parser::Parser;
 
@@ -55,21 +55,8 @@ fn statement_mermaid(statement: Statement) -> String {
                             referred_columns,
                             on_delete,
                             on_update,
-                        } => mermaid_constraints.push_str(&format!(
-                            "\t{} ||--|{{ {} : \"{} - {}\"\n",
-                            name,
-                            foreign_table,
-                            column.name.to_string().replace('"', ""),
-                            referred_columns.into_iter().map(|c| format!("{}", c)).fold(
-                                String::new(),
-                                |mut a, b| {
-                                    a.reserve(b.len() + 1);
-                                    a.push_str(&b);
-                                    a.push_str("\n");
-                                    a
-                                }
-                            )
-                        )),
+                        } => mermaid_constraints
+                            .push_str(&format!("\t{} ||--|{{ {} : \"\"\n", name, foreign_table)),
                         _ => {}
                     }
                 }
@@ -87,9 +74,14 @@ fn statement_mermaid(statement: Statement) -> String {
                     } => {
                         for (column, referred_column) in columns.iter().zip(referred_columns.iter())
                         {
+                            // let f = fk_name.take().to_owned();
+                            let fk_display_name = match fk_name {
+                                None => "",
+                                Some(Ident { ref value, .. }) => value.as_str(), //&ident.value.as_str()
+                            };
                             mermaid.push_str(&format!(
-                                "\t{} ||--|{{ {} : \"{} - {}\"\n",
-                                name, foreign_table, column.value, referred_column.value
+                                "\t{} ||--|{{ {} : \"{}\"\n",
+                                name, foreign_table, fk_display_name
                             ))
                         }
                     }
