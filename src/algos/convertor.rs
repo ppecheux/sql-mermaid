@@ -7,10 +7,11 @@ use sqlparser::parser::Parser;
 fn ast(sql: &str) -> Vec<Statement> {
     let dialect = GenericDialect {}; // or AnsiDialect, or your own dialect ...
     let ast = Parser::parse_sql(&dialect, sql).unwrap();
-    log::info!("Update: {:?}", ast);
+    // log::info!("Update: {:?}", ast);
     return ast;
 }
 
+#[derive(Debug)]
 #[derive(Eq, Hash, PartialEq)]
 enum ColumnConstraint {
     NotNull,
@@ -71,10 +72,6 @@ fn statement_mermaid(
                             on_delete,
                             on_update,
                         } => {
-                            // mermaid_constraints.push_str(&format!(
-                            //     "\t{} ||--|{{ {} : \"\"\n",
-                            //     name, foreign_table
-                            // ));
                             let referred_column = match referred_columns.pop() {
                                 Some(ref ident) => ident.to_string(),
                                 None => "".to_string(),
@@ -117,16 +114,11 @@ fn statement_mermaid(
                         referred_columns,
                     } => {
                         let fk_display_name = match fk_name {
-                            None => 
-                                "".to_string(),
-                            Some(Ident { ref value, .. }) => value.to_string()
+                            None => "".to_string(),
+                            Some(Ident { ref value, .. }) => value.to_string(),
                         };
                         for (column, referred_column) in columns.iter().zip(referred_columns.iter())
                         {
-                            // mermaid.push_str(&format!(
-                            //     "\t{} ||--|{{ {} : \"{}\"\n",
-                            //     name, foreign_table, fk_display_name
-                            // ));
                             column_foreign_key_column.push((
                                 (name.to_string(), column.to_string()),
                                 (foreign_table.to_string(), referred_column.to_string()),
@@ -201,7 +193,6 @@ pub fn sql_s_mermaid(sql: &str) -> String {
     let mut column_foreign_key_column: Vec<(TableColumn, TableColumn, String)> = Vec::new();
 
     let mut mermaid: String = "erDiagram\n".to_string();
-    //let mut constraints: String = String::new();
 
     for statement in ast(sql) {
         mermaid.push_str(
@@ -213,6 +204,7 @@ pub fn sql_s_mermaid(sql: &str) -> String {
             .as_str(),
         );
     }
+    log::debug!("Update: {:?}", table_column_constraints);
 
     for ((l_table, l_column), (r_table, r_column), foreign_key) in column_foreign_key_column {
         mermaid.push_str(&format!(
@@ -221,7 +213,7 @@ pub fn sql_s_mermaid(sql: &str) -> String {
             one_or_many_relation(Side::Left, &l_table, &l_column, &table_column_constraints,),
             zero_or_one_relation(&l_table, &l_column, &table_column_constraints,),
             zero_or_one_relation(&r_table, &r_column, &table_column_constraints,),
-            one_or_many_relation(Side::Right, &l_table, &l_column, &table_column_constraints,),
+            one_or_many_relation(Side::Right, &r_table, &r_column, &table_column_constraints,),
             r_table,
             foreign_key
         ))
