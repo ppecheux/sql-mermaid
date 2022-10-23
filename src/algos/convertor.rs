@@ -11,8 +11,7 @@ fn ast(sql: &str) -> Vec<Statement> {
     return ast;
 }
 
-#[derive(Debug)]
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 enum ColumnConstraint {
     NotNull,
     Unique,
@@ -101,7 +100,6 @@ fn statement_mermaid(
                     }
                 }
             }
-            table_colum_constraints.insert(name.to_string(), column_constraints);
             mermaid.push_str("}");
             mermaid.push_str(mermaid_constraints.as_str());
             // ColumnDef { name: Ident { value: "CUSTOMER_ID", quote_style: None }, data_type: Int, collation: None, options: [ColumnOptionDef { name: None, option: ForeignKey { foreign_table: ObjectName([Ident { value: "CUSTOMERS", quote_style: None }]), referred_columns: [Ident { value: "ID", quote_style: None }], on_delete: None, on_update: None } }] }
@@ -126,9 +124,25 @@ fn statement_mermaid(
                             ));
                         }
                     }
+                    sqlparser::ast::TableConstraint::Unique {
+                        name,
+                        columns,
+                        is_primary,
+                    } => {
+                        if !columns.is_empty() && columns.len() == 1 {
+                            let cols = column_constraints
+                                .entry(columns[0].to_string())
+                                .or_insert(HashSet::new());
+                            cols.insert(ColumnConstraint::Unique);
+                            if is_primary {
+                                cols.insert(ColumnConstraint::NotNull);
+                            }
+                        }
+                    }
                     _ => {}
                 }
             }
+            table_colum_constraints.insert(name.to_string(), column_constraints);
         }
         _ => {}
     }
@@ -208,10 +222,10 @@ pub fn sql_s_mermaid(sql: &str) -> String {
 
     for ((l_table, l_column), (r_table, r_column), foreign_key) in column_foreign_key_column {
         mermaid.push_str(&format!(
-            "\t{} {}{}--{}{} {} : \"{}\"\n",
+            "\t{} }}o--{}{} {} : \"{}\"\n",
             l_table,
-            one_or_many_relation(Side::Left, &l_table, &l_column, &table_column_constraints,),
-            zero_or_one_relation(&l_table, &l_column, &table_column_constraints,),
+            // one_or_many_relation(Side::Left, &l_table, &l_column, &table_column_constraints,),
+            // zero_or_one_relation(&l_table, &l_column, &table_column_constraints,),
             zero_or_one_relation(&r_table, &r_column, &table_column_constraints,),
             one_or_many_relation(Side::Right, &r_table, &r_column, &table_column_constraints,),
             r_table,
