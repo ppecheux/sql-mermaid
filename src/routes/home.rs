@@ -15,30 +15,27 @@ enum Tabs {
     Code,
 }
 
-const INIT_SQL: &'static str = r#"CREATE TABLE CUSTOMERS(
-    ID   INT              NOT NULL,
-    NAME VARCHAR (20)     NOT NULL,
-    AGE  INT              NOT NULL,
-    ADDRESS INT           NOT NULL,
-    SALARY   DECIMAL (18, 2),  
-    PRIMARY KEY (ID),
-    CONSTRAINT FK_Address FOREIGN KEY (ADDRESS)
-    REFERENCES ADDRESS(ID)
- );
- CREATE TABLE ORDERS (
-    ID          INT        NOT NULL,
-    DATE        DATETIME, 
-    CUSTOMER_ID INT references CUSTOMERS(ID),
-    AMOUNT     double,
-    PRIMARY KEY (ID)
- );
+const INIT_SQL: &'static str = r#"CREATE TABLE Student(
+    StudentID INT PRIMARY KEY,
+    Name VARCHAR(100)
+    );
+    CREATE TABLE Class(
+    ClassID INT PRIMARY KEY,
+    Course VARCHAR(100),
+    );
+    
+    CREATE TABLE StudentClassRelation(
+    StudentID INT NOT NULL,
+    ClassID INT NOT NULL,FOREIGN KEY (StudentID) REFERENCES Student(StudentID),
+    FOREIGN KEY (ClassID) REFERENCES Class(ClassID),
+    UNIQUE (StudentID, ClassID)
+    );
 
- CREATE TABLE ADDRESS (
-    ID        INT NOT NULL,
-    COUNTRY   VARCHAR (20),
-    CITY VARCHAR (20),
-    PRIMARY KEY (ID)
- )
+    CREATE TABLE StudentDetails(
+        StudentID INT UNIQUE NOT NULL,
+        Email  VARCHAR(100),
+        CONSTRAINT private_info FOREIGN KEY (StudentID) REFERENCES Student(StudentID)
+    );
  "#;
 
 #[function_component(Home)]

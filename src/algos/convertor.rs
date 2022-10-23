@@ -21,7 +21,7 @@ enum ColumnConstraint {
 
 fn statement_mermaid(
     statement: Statement,
-    table_column_type: &mut HashMap<String, HashMap<String, DataType>>,
+    table_column_type: &mut HashMap<String, Vec<(String, DataType)>>,
     table_colum_constraints: &mut HashMap<String, HashMap<String, HashSet<ColumnConstraint>>>,
     column_foreign_key_column: &mut Vec<(TableColumn, TableColumn, String)>,
 ) -> String {
@@ -47,22 +47,11 @@ fn statement_mermaid(
             like,
         } => {
             let mut column_constraints: HashMap<String, HashSet<ColumnConstraint>> = HashMap::new();
-            let mut column_type: HashMap<String, DataType> = HashMap::new();
+            let mut column_type: Vec<(String, DataType)> = Vec::new();
             mermaid.push_str(&format!("\t{} {{\n", name.to_string().replace('"', "")));
 
             for column in columns {
-                column_type.insert(column.name.to_string(), column.data_type);
-                // mermaid.push_str(&format!(
-                //     "\t\t{} {}\n",
-                //     column
-                //         .data_type
-                //         .to_string()
-                //         .replace(' ', "_")
-                //         .replace('(', "")
-                //         .replace(')', "")
-                //         .replace(',', "_"),
-                //     column.name.to_string().replace('"', ""),
-                // ));
+                column_type.push((column.name.to_string(), column.data_type));
                 for ColumnOptionDef {
                     name: option_name,
                     option,
@@ -219,7 +208,7 @@ pub fn sql_s_mermaid(sql: &str) -> String {
     let mut table_column_constraints: HashMap<String, HashMap<String, HashSet<ColumnConstraint>>> =
         HashMap::new();
     let mut column_foreign_key_column: Vec<(TableColumn, TableColumn, String)> = Vec::new();
-    let mut table_column_type: HashMap<String, HashMap<String, DataType>> = HashMap::new();
+    let mut table_column_type: HashMap<String, Vec<(String, DataType)>> = HashMap::new();
 
     let mut mermaid: String = "erDiagram\n".to_string();
 
@@ -271,10 +260,10 @@ pub fn sql_s_mermaid(sql: &str) -> String {
     // draw links
     for ((l_table, l_column), (r_table, r_column), foreign_key) in column_foreign_key_column {
         mermaid.push_str(&format!(
-            "\t{} }}o--{}{} {} : \"{}\"\n",
+            "\t{} {}{}--{}{} {} : \"{}\"\n",
             l_table,
-            // one_or_many_relation(Side::Left, &l_table, &l_column, &table_column_constraints,),
-            // zero_or_one_relation(&l_table, &l_column, &table_column_constraints,),
+            one_or_many_relation(Side::Left, &l_table, &l_column, &table_column_constraints,),
+            "o".to_string(), //zero_or_one_relation(&l_table, &l_column, &table_column_constraints,),
             zero_or_one_relation(&r_table, &r_column, &table_column_constraints,),
             one_or_many_relation(Side::Right, &r_table, &r_column, &table_column_constraints,),
             r_table,
