@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use sqlparser::ast::{ColumnOption, ColumnOptionDef, Ident, Statement};
 use sqlparser::dialect::GenericDialect;
 use sqlparser::parser::Parser;
@@ -9,9 +11,20 @@ fn ast(sql: &str) -> Vec<Statement> {
     return ast;
 }
 
-fn statement_mermaid(statement: Statement) -> String {
+#[derive(Eq, Hash, PartialEq)]
+enum ColumnConstraint {
+    NotNull,
+    Unique,
+}
+
+fn statement_mermaid(
+    statement: Statement,
+    table_colum_constraints: &mut HashMap<String, HashMap<String, HashSet<ColumnConstraint>>>,
+    column_foreign_key_column: &mut Vec<(TableColumn, TableColumn, String)>,
+) -> String {
     let mut mermaid: String = String::new();
-    let mut mermaid_constraints: String = String::new();
+    let mermaid_constraints: String = String::new();
+
     match statement {
         Statement::CreateTable {
             or_replace,
@@ -31,7 +44,9 @@ fn statement_mermaid(statement: Statement) -> String {
             without_rowid,
             like,
         } => {
+            let mut column_constraints: HashMap<String, HashSet<ColumnConstraint>> = HashMap::new();
             mermaid.push_str(&format!("\t{} {{\n", name.to_string().replace('"', "")));
+
             for column in columns {
                 mermaid.push_str(&format!(
                     "\t\t{} {}\n",
@@ -52,15 +67,44 @@ fn statement_mermaid(statement: Statement) -> String {
                     match option {
                         ColumnOption::ForeignKey {
                             foreign_table,
-                            referred_columns,
+                            mut referred_columns,
                             on_delete,
                             on_update,
-                        } => mermaid_constraints
-                            .push_str(&format!("\t{} ||--|{{ {} : \"\"\n", name, foreign_table)),
+                        } => {
+                            // mermaid_constraints.push_str(&format!(
+                            //     "\t{} ||--|{{ {} : \"\"\n",
+                            //     name, foreign_table
+                            // ));
+                            let referred_column = match referred_columns.pop() {
+                                Some(ref ident) => ident.to_string(),
+                                None => "".to_string(),
+                            }; // how to deal when referencing many cols ?
+                            column_foreign_key_column.push((
+                                (name.to_string(), column.name.to_string()),
+                                (foreign_table.to_string(), referred_column),
+                                "".to_string(),
+                            ));
+                        }
+                        ColumnOption::NotNull => {
+                            let constraint_set = column_constraints
+                                .entry(column.name.to_string())
+                                .or_insert(HashSet::new());
+                            constraint_set.insert(ColumnConstraint::NotNull);
+                        }
+                        ColumnOption::Unique { is_primary } => {
+                            let constraint_set = column_constraints
+                                .entry(column.name.to_string())
+                                .or_insert(HashSet::new());
+                            constraint_set.insert(ColumnConstraint::Unique);
+                            if is_primary {
+                                constraint_set.insert(ColumnConstraint::NotNull);
+                            }
+                        }
                         _ => {}
                     }
                 }
             }
+            table_colum_constraints.insert(name.to_string(), column_constraints);
             mermaid.push_str("}");
             mermaid.push_str(mermaid_constraints.as_str());
             // ColumnDef { name: Ident { value: "CUSTOMER_ID", quote_style: None }, data_type: Int, collation: None, options: [ColumnOptionDef { name: None, option: ForeignKey { foreign_table: ObjectName([Ident { value: "CUSTOMERS", quote_style: None }]), referred_columns: [Ident { value: "ID", quote_style: None }], on_delete: None, on_update: None } }] }
@@ -72,17 +116,22 @@ fn statement_mermaid(statement: Statement) -> String {
                         foreign_table,
                         referred_columns,
                     } => {
+                        let fk_display_name = match fk_name {
+                            None => 
+                                "".to_string(),
+                            Some(Ident { ref value, .. }) => value.to_string()
+                        };
                         for (column, referred_column) in columns.iter().zip(referred_columns.iter())
                         {
-                            // let f = fk_name.take().to_owned();
-                            let fk_display_name = match fk_name {
-                                None => "",
-                                Some(Ident { ref value, .. }) => value.as_str(), //&ident.value.as_str()
-                            };
-                            mermaid.push_str(&format!(
-                                "\t{} ||--|{{ {} : \"{}\"\n",
-                                name, foreign_table, fk_display_name
-                            ))
+                            // mermaid.push_str(&format!(
+                            //     "\t{} ||--|{{ {} : \"{}\"\n",
+                            //     name, foreign_table, fk_display_name
+                            // ));
+                            column_foreign_key_column.push((
+                                (name.to_string(), column.to_string()),
+                                (foreign_table.to_string(), referred_column.to_string()),
+                                fk_display_name.to_owned(),
+                            ));
                         }
                     }
                     _ => {}
@@ -94,10 +143,88 @@ fn statement_mermaid(statement: Statement) -> String {
     mermaid
 }
 
+type TableColumn = (String, String);
+
+fn zero_or_one_relation(
+    table: &String,
+    column: &String,
+    table_colum_constraints: &HashMap<String, HashMap<String, HashSet<ColumnConstraint>>>,
+) -> String {
+    match table_colum_constraints.get(table) {
+        None => "o".to_string(),
+        Some(columns) => match columns.get(column) {
+            None => "o".to_string(),
+            Some(constraints) => {
+                if constraints.contains(&ColumnConstraint::NotNull) {
+                    "|".to_string()
+                } else {
+                    "o".to_string()
+                }
+            }
+        },
+    }
+}
+
+enum Side {
+    Left,
+    Right,
+}
+
+fn one_or_many_relation(
+    side: Side,
+    table: &String,
+    column: &String,
+    table_colum_constraints: &HashMap<String, HashMap<String, HashSet<ColumnConstraint>>>,
+) -> String {
+    let many = match side {
+        Side::Left => "}",
+        Side::Right => "{",
+    };
+    match table_colum_constraints.get(table) {
+        None => many.to_string(),
+        Some(columns) => match columns.get(column) {
+            None => many.to_string(),
+            Some(constraints) => {
+                if constraints.contains(&ColumnConstraint::Unique) {
+                    "|".to_string()
+                } else {
+                    many.to_string()
+                }
+            }
+        },
+    }
+}
+
 pub fn sql_s_mermaid(sql: &str) -> String {
+    let mut table_column_constraints: HashMap<String, HashMap<String, HashSet<ColumnConstraint>>> =
+        HashMap::new();
+    let mut column_foreign_key_column: Vec<(TableColumn, TableColumn, String)> = Vec::new();
+
     let mut mermaid: String = "erDiagram\n".to_string();
+    //let mut constraints: String = String::new();
+
     for statement in ast(sql) {
-        mermaid.push_str(statement_mermaid(statement).as_str());
+        mermaid.push_str(
+            statement_mermaid(
+                statement,
+                &mut table_column_constraints,
+                &mut column_foreign_key_column,
+            )
+            .as_str(),
+        );
+    }
+
+    for ((l_table, l_column), (r_table, r_column), foreign_key) in column_foreign_key_column {
+        mermaid.push_str(&format!(
+            "\t{} {}{}--{}{} {} : \"{}\"\n",
+            l_table,
+            one_or_many_relation(Side::Left, &l_table, &l_column, &table_column_constraints,),
+            zero_or_one_relation(&l_table, &l_column, &table_column_constraints,),
+            zero_or_one_relation(&r_table, &r_column, &table_column_constraints,),
+            one_or_many_relation(Side::Right, &l_table, &l_column, &table_column_constraints,),
+            r_table,
+            foreign_key
+        ))
     }
     mermaid
 }
