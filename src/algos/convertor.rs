@@ -224,36 +224,35 @@ pub fn sql_s_mermaid(sql: &str) -> String {
     let mut mermaid: String = "erDiagram\n".to_string();
 
     for statement in ast(sql) {
-        mermaid.push_str(
-            statement_mermaid(
-                statement,
-                &mut table_column_type,
-                &mut table_column_constraints,
-                &mut column_foreign_key_column,
-            )
-            .as_str(),
+        statement_mermaid(
+            statement,
+            &mut table_column_type,
+            &mut table_column_constraints,
+            &mut column_foreign_key_column,
         );
     }
     log::debug!("Update: {:?}", table_column_constraints);
 
     // draw boxes
-    for (table_name, table) in &table_column_constraints {
-        mermaid.push_str(&format!("\t{} {{\n", table_name.to_string().replace('"', "")));
-        for (column_name, constraints) in table {
+    for (table_name, table) in &table_column_type {
+        mermaid.push_str(&format!(
+            "\t{} {{\n",
+            table_name.to_string().replace('"', "")
+        ));
+        let default_table_constraints = HashMap::new();
+        let table_constraints = table_column_constraints.get(table_name).unwrap_or(&default_table_constraints);
+        for (column_name, data_type) in table {
+            let default_constraints = &HashSet::new();
+            let constraints = &table_constraints.get(column_name).unwrap_or(&default_constraints);
             mermaid.push_str(&format!(
                 "\t\t{} {} {} {}\n",
-                match table_column_type.get(table_name) {
-                    Some(cols) => match cols.get(column_name) {
-                        None => "NONE".to_string(),
-                        Some(data_type) => data_type.to_string()
-                        .replace(' ', "_")
-                        .replace('(', "")
-                        .replace(')', "")
-                        .replace(',', "_"),
-                    },
-                    None => "NONE".to_string(),
-                },
-                table_name.to_string().replace('"', ""),
+                data_type
+                    .to_string()
+                    .replace(' ', "_")
+                    .replace('(', "")
+                    .replace(')', "")
+                    .replace(',', "_"),
+                column_name.to_string().replace('"', ""),
                 if constraints.contains(&ColumnConstraint::PrimaryKey) {
                     "PK"
                 } else {
