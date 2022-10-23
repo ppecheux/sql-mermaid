@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use sqlparser::ast::{ColumnOption, ColumnOptionDef, Ident, Statement};
+use sqlparser::ast::{ColumnOption, ColumnOptionDef, DataType, Ident, Statement};
 use sqlparser::dialect::GenericDialect;
 use sqlparser::parser::Parser;
 
@@ -15,15 +15,17 @@ fn ast(sql: &str) -> Vec<Statement> {
 enum ColumnConstraint {
     NotNull,
     Unique,
+    ForeignKey,
+    PrimaryKey,
 }
 
 fn statement_mermaid(
     statement: Statement,
+    table_column_type: &mut HashMap<String, HashMap<String, DataType>>,
     table_colum_constraints: &mut HashMap<String, HashMap<String, HashSet<ColumnConstraint>>>,
     column_foreign_key_column: &mut Vec<(TableColumn, TableColumn, String)>,
 ) -> String {
     let mut mermaid: String = String::new();
-    let mermaid_constraints: String = String::new();
 
     match statement {
         Statement::CreateTable {
@@ -45,20 +47,22 @@ fn statement_mermaid(
             like,
         } => {
             let mut column_constraints: HashMap<String, HashSet<ColumnConstraint>> = HashMap::new();
+            let mut column_type: HashMap<String, DataType> = HashMap::new();
             mermaid.push_str(&format!("\t{} {{\n", name.to_string().replace('"', "")));
 
             for column in columns {
-                mermaid.push_str(&format!(
-                    "\t\t{} {}\n",
-                    column
-                        .data_type
-                        .to_string()
-                        .replace(' ', "_")
-                        .replace('(', "")
-                        .replace(')', "")
-                        .replace(',', "_"),
-                    column.name.to_string().replace('"', ""),
-                ));
+                column_type.insert(column.name.to_string(), column.data_type);
+                // mermaid.push_str(&format!(
+                //     "\t\t{} {}\n",
+                //     column
+                //         .data_type
+                //         .to_string()
+                //         .replace(' ', "_")
+                //         .replace('(', "")
+                //         .replace(')', "")
+                //         .replace(',', "_"),
+                //     column.name.to_string().replace('"', ""),
+                // ));
                 for ColumnOptionDef {
                     name: option_name,
                     option,
@@ -80,6 +84,10 @@ fn statement_mermaid(
                                 (foreign_table.to_string(), referred_column),
                                 "".to_string(),
                             ));
+                            let constraint_set = column_constraints
+                                .entry(column.name.to_string())
+                                .or_insert(HashSet::new());
+                            constraint_set.insert(ColumnConstraint::ForeignKey);
                         }
                         ColumnOption::NotNull => {
                             let constraint_set = column_constraints
@@ -94,6 +102,7 @@ fn statement_mermaid(
                             constraint_set.insert(ColumnConstraint::Unique);
                             if is_primary {
                                 constraint_set.insert(ColumnConstraint::NotNull);
+                                constraint_set.insert(ColumnConstraint::PrimaryKey);
                             }
                         }
                         _ => {}
@@ -101,7 +110,6 @@ fn statement_mermaid(
                 }
             }
             mermaid.push_str("}");
-            mermaid.push_str(mermaid_constraints.as_str());
             // ColumnDef { name: Ident { value: "CUSTOMER_ID", quote_style: None }, data_type: Int, collation: None, options: [ColumnOptionDef { name: None, option: ForeignKey { foreign_table: ObjectName([Ident { value: "CUSTOMERS", quote_style: None }]), referred_columns: [Ident { value: "ID", quote_style: None }], on_delete: None, on_update: None } }] }
             for constraint in constraints {
                 match constraint {
@@ -122,6 +130,10 @@ fn statement_mermaid(
                                 (foreign_table.to_string(), referred_column.to_string()),
                                 fk_display_name.to_owned(),
                             ));
+                            let constraint_set = column_constraints
+                                .entry(column.to_string())
+                                .or_insert(HashSet::new());
+                            constraint_set.insert(ColumnConstraint::ForeignKey);
                         }
                     }
                     sqlparser::ast::TableConstraint::Unique {
@@ -136,6 +148,7 @@ fn statement_mermaid(
                             cols.insert(ColumnConstraint::Unique);
                             if is_primary {
                                 cols.insert(ColumnConstraint::NotNull);
+                                cols.insert(ColumnConstraint::PrimaryKey);
                             }
                         }
                     }
@@ -143,6 +156,7 @@ fn statement_mermaid(
                 }
             }
             table_colum_constraints.insert(name.to_string(), column_constraints);
+            table_column_type.insert(name.to_string(), column_type);
         }
         _ => {}
     }
@@ -205,6 +219,7 @@ pub fn sql_s_mermaid(sql: &str) -> String {
     let mut table_column_constraints: HashMap<String, HashMap<String, HashSet<ColumnConstraint>>> =
         HashMap::new();
     let mut column_foreign_key_column: Vec<(TableColumn, TableColumn, String)> = Vec::new();
+    let mut table_column_type: HashMap<String, HashMap<String, DataType>> = HashMap::new();
 
     let mut mermaid: String = "erDiagram\n".to_string();
 
@@ -212,6 +227,7 @@ pub fn sql_s_mermaid(sql: &str) -> String {
         mermaid.push_str(
             statement_mermaid(
                 statement,
+                &mut table_column_type,
                 &mut table_column_constraints,
                 &mut column_foreign_key_column,
             )
@@ -220,6 +236,40 @@ pub fn sql_s_mermaid(sql: &str) -> String {
     }
     log::debug!("Update: {:?}", table_column_constraints);
 
+    // draw boxes
+    for (table_name, table) in &table_column_constraints {
+        mermaid.push_str(&format!("\t{} {{\n", table_name.to_string().replace('"', "")));
+        for (column_name, constraints) in table {
+            mermaid.push_str(&format!(
+                "\t\t{} {} {} {}\n",
+                match table_column_type.get(table_name) {
+                    Some(cols) => match cols.get(column_name) {
+                        None => "NONE".to_string(),
+                        Some(data_type) => data_type.to_string()
+                        .replace(' ', "_")
+                        .replace('(', "")
+                        .replace(')', "")
+                        .replace(',', "_"),
+                    },
+                    None => "NONE".to_string(),
+                },
+                table_name.to_string().replace('"', ""),
+                if constraints.contains(&ColumnConstraint::PrimaryKey) {
+                    "PK"
+                } else {
+                    ""
+                },
+                if constraints.contains(&ColumnConstraint::ForeignKey) {
+                    "\"FK\""
+                } else {
+                    ""
+                }
+            ));
+        }
+        mermaid.push_str("}");
+    }
+
+    // draw links
     for ((l_table, l_column), (r_table, r_column), foreign_key) in column_foreign_key_column {
         mermaid.push_str(&format!(
             "\t{} }}o--{}{} {} : \"{}\"\n",
