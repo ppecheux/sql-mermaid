@@ -4,11 +4,9 @@ use sqlparser::ast::{ColumnOption, ColumnOptionDef, DataType, Ident, Statement};
 use sqlparser::dialect::GenericDialect;
 use sqlparser::parser::Parser;
 
-fn ast(sql: &str) -> Vec<Statement> {
+fn ast(sql: &str) -> Result<Vec<Statement>, sqlparser::parser::ParserError> {
     let dialect = GenericDialect {}; // or AnsiDialect, or your own dialect ...
-    let ast = Parser::parse_sql(&dialect, sql).unwrap();
-    // log::info!("Update: {:?}", ast);
-    return ast;
+    return Parser::parse_sql(&dialect, sql);
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]
@@ -211,64 +209,91 @@ pub fn sql_s_mermaid(sql: &str) -> String {
     let mut table_column_type: HashMap<String, Vec<(String, DataType)>> = HashMap::new();
 
     let mut mermaid: String = "erDiagram\n".to_string();
+    match ast(sql) {
+        Ok(statements) => {
+            for statement in statements {
+                statement_mermaid(
+                    statement,
+                    &mut table_column_type,
+                    &mut table_column_constraints,
+                    &mut column_foreign_key_column,
+                );
+            }
+            log::debug!("Update: {:?}", table_column_constraints);
 
-    for statement in ast(sql) {
-        statement_mermaid(
-            statement,
-            &mut table_column_type,
-            &mut table_column_constraints,
-            &mut column_foreign_key_column,
-        );
-    }
-    log::debug!("Update: {:?}", table_column_constraints);
-
-    // draw boxes
-    for (table_name, table) in &table_column_type {
-        mermaid.push_str(&format!(
-            "\t{} {{\n",
-            table_name.to_string().replace('"', "")
-        ));
-        let default_table_constraints = HashMap::new();
-        let table_constraints = table_column_constraints.get(table_name).unwrap_or(&default_table_constraints);
-        for (column_name, data_type) in table {
-            let default_constraints = &HashSet::new();
-            let constraints = &table_constraints.get(column_name).unwrap_or(&default_constraints);
-            mermaid.push_str(&format!(
-                "\t\t{} {} {} {}\n",
-                data_type
-                    .to_string()
-                    .replace(' ', "_")
-                    .replace('(', "")
-                    .replace(')', "")
-                    .replace(',', "_"),
-                column_name.to_string().replace('"', ""),
-                if constraints.contains(&ColumnConstraint::PrimaryKey) {
-                    "PK"
-                } else {
-                    ""
-                },
-                if constraints.contains(&ColumnConstraint::ForeignKey) {
-                    "\"FK\""
-                } else {
-                    ""
+            // draw boxes
+            for (table_name, table) in &table_column_type {
+                mermaid.push_str(&format!(
+                    "\t{} {{\n",
+                    table_name.to_string().replace('"', "")
+                ));
+                let default_table_constraints = HashMap::new();
+                let table_constraints = table_column_constraints
+                    .get(table_name)
+                    .unwrap_or(&default_table_constraints);
+                for (column_name, data_type) in table {
+                    let default_constraints = &HashSet::new();
+                    let constraints = &table_constraints
+                        .get(column_name)
+                        .unwrap_or(&default_constraints);
+                    mermaid.push_str(&format!(
+                        "\t\t{} {} {} {}\n",
+                        data_type
+                            .to_string()
+                            .replace(' ', "_")
+                            .replace('(', "")
+                            .replace(')', "")
+                            .replace(',', "_"),
+                        column_name.to_string().replace('"', ""),
+                        if constraints.contains(&ColumnConstraint::PrimaryKey) {
+                            "PK"
+                        } else {
+                            ""
+                        },
+                        if constraints.contains(&ColumnConstraint::ForeignKey) {
+                            "\"FK\""
+                        } else {
+                            ""
+                        }
+                    ));
                 }
-            ));
-        }
-        mermaid.push_str("}");
-    }
+                mermaid.push_str("}");
+            }
 
-    // draw links
-    for ((l_table, l_column), (r_table, r_column), foreign_key) in column_foreign_key_column {
-        mermaid.push_str(&format!(
-            "\t{} {}{}--{}{} {} : \"{}\"\n",
-            l_table,
-            one_or_many_relation(Side::Left, &l_table, &l_column, &table_column_constraints,),
-            "o".to_string(), //zero_or_one_relation(&l_table, &l_column, &table_column_constraints,),
-            zero_or_one_relation(&r_table, &r_column, &table_column_constraints,),
-            one_or_many_relation(Side::Right, &r_table, &r_column, &table_column_constraints,),
-            r_table,
-            foreign_key
-        ))
+            // draw links
+            for ((l_table, l_column), (r_table, r_column), foreign_key) in column_foreign_key_column
+            {
+                mermaid.push_str(&format!(
+                    "\t{} {}{}--{}{} {} : \"{}\"\n",
+                    l_table,
+                    one_or_many_relation(
+                        Side::Left,
+                        &l_table,
+                        &l_column,
+                        &table_column_constraints,
+                    ),
+                    "o".to_string(), //zero_or_one_relation(&l_table, &l_column, &table_column_constraints,),
+                    zero_or_one_relation(&r_table, &r_column, &table_column_constraints,),
+                    one_or_many_relation(
+                        Side::Right,
+                        &r_table,
+                        &r_column,
+                        &table_column_constraints,
+                    ),
+                    r_table,
+                    foreign_key
+                ))
+            }
+        }
+        Err(err) => {
+            let err_message = err.to_string(); 
+            let lines = err_message.lines();
+            mermaid.push_str("ERROR {\n");
+            for line in lines {
+                mermaid.push_str(&format!("parser message \"{}\"\n ", line));
+            }
+            mermaid.push_str("}");
+        }
     }
     mermaid
 }

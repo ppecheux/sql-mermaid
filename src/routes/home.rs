@@ -85,7 +85,7 @@ pub fn home() -> Html {
                             <textarea {onchange} value={(*sql).clone()} style="flex-grow : 1" />
                     </div>
                     <div >
-                    <MatButton label="send" />
+                    <MatButton label="Refresh" />
                     </div>
                 </div>
             <MatTabBar onactivated={on_activated}>
