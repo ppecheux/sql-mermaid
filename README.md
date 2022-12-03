@@ -1,5 +1,18 @@
 # SQL to mermaid.js Entity Relation Diagram
+## This web app helps visualize SQL table creation scripts.
 
+## How to use
+
+1. Past your sql statements
+2. Click the refresh button
+3. Visualize tables and relationships in a entity relation diagram
+4. Copy the generated mermaid.js script to embed the schema in your markdown technical documentation
+
+## Implementation
+
+- sql parsing using rust
+- front end web app using yew framework
+- deployment on github pages
 
 ## Run locally
 ### How to install
@@ -32,5 +45,6 @@ npm test
 ### Deploy
 
 ```sh
-git push origin v*.*.*
+git tag vα.β.γ
+git push origin vα.β.γ
 ```
